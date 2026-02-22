@@ -36,7 +36,7 @@ export class ApprovalManager {
       args.body,
       "",
       "--- Actions ---",
-      `/approve ${args.draftId}`,
+      `/sales-approve ${args.draftId}`,
       `/reject ${args.draftId} [optional feedback]`,
     ]
       .filter(Boolean)

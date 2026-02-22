@@ -431,6 +431,84 @@ export default function register(api: OpenClawPluginApi) {
 
   api.registerTool((_ctx) => factoryTools as unknown as AnyAgentTool[], {
     names: factoryTools.map((t) => t.name),
-    optional: true,
+  });
+
+  // --- Inject factory context into agent prompt when a cycle is active ---
+
+  api.on("before_prompt_build", async (_event, _ctx) => {
+    const cycle = store.getActiveCycle();
+    if (!cycle) return;
+
+    // If scouting with no ideas yet, inject the full scout prompt
+    if (cycle.status === "scouting" && (!cycle.ideas || cycle.ideas.length === 0)) {
+      const scoutPrompt = buildScoutMessage(store, cycle.cycleId);
+      return {
+        prependContext: [
+          "## Scaffold App Factory — ACTIVE SCOUTING MISSION",
+          "",
+          "There is an active scouting cycle. You MUST execute the instructions below.",
+          "",
+          "CRITICAL: When you have finished finding ideas, you MUST call the `factory_scout_process` tool.",
+          "DO NOT just reply with text. You MUST use the tool to store results.",
+          "Tool call parameters:",
+          `  - cycle_id: "${cycle.cycleId}"`,
+          '  - response: your JSON string containing {"ideas": [...]} with scored ideas',
+          "",
+          "If you skip the tool call, the ideas will be lost.",
+          "",
+          `Cycle ID: ${cycle.cycleId}`,
+          "",
+          scoutPrompt,
+        ].join("\n"),
+      };
+    }
+
+    // If building with no build result yet, inject the full builder prompt
+    if (cycle.status === "building" && !cycle.buildResult) {
+      const agentsConfig = (api.config as Record<string, unknown>).agents as
+        | Record<string, unknown>
+        | undefined;
+      const workspace = (agentsConfig?.defaults as Record<string, unknown> | undefined)
+        ?.workspace as string | undefined;
+      const outputBaseDir = workspace
+        ? path.join(workspace, "scaffold", "examples")
+        : path.join(stateDir, "builds");
+
+      const builderPrompt = buildBuilderMessage(store, cycle.cycleId, outputBaseDir);
+      return {
+        prependContext: [
+          "## Scaffold App Factory — ACTIVE BUILD MISSION",
+          "",
+          "There is an active build cycle. You MUST execute the build instructions below.",
+          "",
+          "CRITICAL: When you have finished building, you MUST call the `factory_build_process` tool.",
+          "DO NOT just reply with text. You MUST use the tool to store results.",
+          "Tool call parameters:",
+          `  - cycle_id: "${cycle.cycleId}"`,
+          "  - response: your JSON string with build results (see Output section below)",
+          `  - app_dir: the directory where you built the app`,
+          "",
+          "If you skip the tool call, the build results will be lost.",
+          "",
+          builderPrompt,
+        ].join("\n"),
+      };
+    }
+
+    // For other active states, inject a brief status context
+    const status = pipeline.getStatus(cycle.cycleId);
+    if (status) {
+      return {
+        prependContext: [
+          "## Scaffold App Factory — Active Cycle",
+          `Cycle: ${status.cycleId} | Stage: ${status.status}`,
+          status.idea ? `Idea: ${status.idea.title}` : "",
+          status.appName ? `App: ${status.appName}` : "",
+          "Use factory_* tools to interact with the pipeline.",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      };
+    }
   });
 }

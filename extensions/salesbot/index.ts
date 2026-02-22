@@ -69,19 +69,18 @@ export default function register(api: OpenClawPluginApi) {
   const tools = createSalesTools(db);
   api.registerTool((_ctx) => tools as unknown as AnyAgentTool[], {
     names: tools.map((t) => t.name),
-    optional: true,
   });
 
   // --- Commands ---
 
   api.registerCommand({
-    name: "approve",
+    name: "sales-approve",
     description: "Approve a sales outreach draft for sending",
     acceptsArgs: true,
     handler: async (ctx) => {
       const draftId = parseInt(ctx.args?.trim() || "", 10);
       if (isNaN(draftId)) {
-        return { text: "Usage: /approve <draft_id>" };
+        return { text: "Usage: /sales-approve <draft_id>" };
       }
 
       const result = approval.handleApprove(draftId);
