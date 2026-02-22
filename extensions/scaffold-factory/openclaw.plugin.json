@@ -1,0 +1,10 @@
+{
+  "id": "scaffold-factory",
+  "name": "Scaffold App Factory",
+  "description": "Autonomous MCP app discovery, building, and testing pipeline",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

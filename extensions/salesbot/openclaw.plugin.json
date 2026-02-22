@@ -1,0 +1,10 @@
+{
+  "id": "salesbot",
+  "name": "Voygent Salesbot",
+  "description": "Influencer outreach pipeline for Voygent travel planning",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
